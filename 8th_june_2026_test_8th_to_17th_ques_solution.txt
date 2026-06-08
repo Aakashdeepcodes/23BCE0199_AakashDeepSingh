@@ -1,0 +1,317 @@
+================================================================
+     8TH JUNE 2026 TEST — MONGODB SOLUTIONS (Q8 TO Q16)
+================================================================
+
+DATASETS USED:
+  • db.students   (Questions 8, 9, 11)
+  • db.employees  (Questions 12, 13, 14, 15, 16)
+
+----------------------------------------------------------------
+INSERT DATASETS (for reference)
+----------------------------------------------------------------
+
+db.students.insertMany([
+  { _id: 1, name: "Ananya", age: 21, dept: "CS",  marks: 88, grades: ["A","B","A"], address: { city: "Chennai",    pin: "600001" }, active: true  },
+  { _id: 2, name: "Arjun",  age: 23, dept: "IT",  marks: 74, grades: ["B","C","B"], address: { city: "Madurai",    pin: "625001" }, active: true  },
+  { _id: 3, name: "Meena",  age: 20, dept: "CS",  marks: 95, grades: ["A","A","A"], address: { city: "Chennai",    pin: "600002" }, active: true  },
+  { _id: 4, name: "Ravi",   age: 22, dept: "ECE", marks: 61, grades: ["C","C","B"], address: { city: "Trichy",     pin: "620001" }, active: false },
+  { _id: 5, name: "Kavya",  age: 24, dept: "IT",  marks: 82, grades: ["A","B","B"], address: { city: "Coimbatore", pin: "641001" }, active: true  },
+  { _id: 6, name: "Dinesh", age: 19, dept: "CS",  marks: 55, grades: ["C","D","C"], address: { city: "Salem",      pin: "636001" }, active: true  },
+  { _id: 7, name: "Priya",  age: 22, dept: "ECE", marks: 79, grades: ["B","B","A"], address: { city: "Trichy",     pin: "620002" }, active: true  }
+])
+
+db.employees.insertMany([
+  { empId: 101, name: "Arun",    age: 25, gender: "Male",   department: "IT",        salary: 45000, city: "Chennai",   skills: ["Java","MongoDB","Spring"],   experience: 3, active: true  },
+  { empId: 102, name: "Priya",   age: 28, gender: "Female", department: "HR",        salary: 55000, city: "Bangalore", skills: ["Recruitment","Training"],    experience: 5, active: true  },
+  { empId: 103, name: "Rahul",   age: 32, gender: "Male",   department: "IT",        salary: 75000, city: "Mumbai",    skills: ["Python","MongoDB","AWS"],    experience: 8, active: true  },
+  { empId: 104, name: "Sneha",   age: 26, gender: "Female", department: "Finance",   salary: 50000, city: "Delhi",     skills: ["Excel","Taxation"],          experience: 4, active: false },
+  { empId: 105, name: "Karthik", age: 30, gender: "Male",   department: "IT",        salary: 68000, city: "Chennai",   skills: ["NodeJS","MongoDB","React"],  experience: 7, active: true  },
+  { empId: 106, name: "Meena",   age: 24, gender: "Female", department: "Marketing", salary: 42000, city: "Chennai",   skills: ["SEO","Content"],             experience: 2, active: true  }
+])
+
+================================================================
+QUESTION 8: Remove the 'scholarship' field from all CS students
+            using $unset.
+================================================================
+
+QUERY:
+------
+db.students.updateMany(
+  { dept: "CS" },
+  { $unset: { scholarship: "" } }
+)
+
+EXPLANATION:
+  • updateMany          → applies the update to ALL matching documents
+  • { dept: "CS" }      → filter: only CS department students
+  • $unset: { scholarship: "" } → removes the 'scholarship' field
+    completely from each matched document (the value "" is ignored;
+    any value works with $unset)
+
+AFFECTED STUDENTS (dept: "CS"):
+  _id 1 – Ananya,  _id 3 – Meena,  _id 6 – Dinesh
+
+EXPECTED OUTPUT:
+  { acknowledged: true, matchedCount: 3, modifiedCount: 3 }
+
+================================================================
+QUESTION 9: Add a new field 'scholarship' with value false
+            to all CS students using $set.
+================================================================
+
+QUERY:
+------
+db.students.updateMany(
+  { dept: "CS" },
+  { $set: { scholarship: false } }
+)
+
+EXPLANATION:
+  • updateMany          → applies the update to ALL matching documents
+  • { dept: "CS" }      → filter: only CS department students
+  • $set: { scholarship: false } → adds (or updates) the field
+    'scholarship' and sets its value to false
+
+AFFECTED STUDENTS (dept: "CS"):
+  _id 1 – Ananya,  _id 3 – Meena,  _id 6 – Dinesh
+
+EXPECTED OUTPUT:
+  { acknowledged: true, matchedCount: 3, modifiedCount: 3 }
+
+VERIFY WITH:
+  db.students.find({ dept: "CS" }, { name: 1, scholarship: 1 })
+  ➜ Each CS student will now show  scholarship: false
+
+================================================================
+QUESTION 11: Find the 3rd and 4th highest scoring students
+             using sort, skip, and limit (PAGINATION).
+================================================================
+
+QUERY:
+------
+db.students.find(
+  {},
+  { name: 1, marks: 1, _id: 0 }
+)
+.sort({ marks: -1 })
+.skip(2)
+.limit(2)
+
+EXPLANATION:
+  • sort({ marks: -1 }) → sort all students by marks DESCENDING
+  • skip(2)             → skip the 1st and 2nd highest scorers
+  • limit(2)            → return only the next 2 documents
+                          (i.e., 3rd and 4th rank)
+
+STUDENTS SORTED BY MARKS (descending):
+  Rank 1 → Meena   : 95  (_id 3)
+  Rank 2 → Ananya  : 88  (_id 1)
+  Rank 3 → Kavya   : 82  (_id 5)  ← returned
+  Rank 4 → Priya   : 79  (_id 7)  ← returned
+  Rank 5 → Arjun   : 74  (_id 2)
+  Rank 6 → Ravi    : 61  (_id 4)
+  Rank 7 → Dinesh  : 55  (_id 6)
+
+EXPECTED OUTPUT:
+  { name: "Kavya", marks: 82 }
+  { name: "Priya", marks: 79 }
+
+================================================================
+QUESTION 12: Find employees whose salary > 50000
+             AND experience > 5.
+================================================================
+
+QUERY:
+------
+db.employees.find(
+  {
+    salary:     { $gt: 50000 },
+    experience: { $gt: 5 }
+  },
+  { name: 1, salary: 1, experience: 1, department: 1, _id: 0 }
+)
+
+EXPLANATION:
+  • $gt: 50000 → salary strictly greater than 50000
+  • $gt: 5     → experience strictly greater than 5 years
+  • Both conditions must be true (implicit AND in MongoDB)
+
+MATCHING EMPLOYEES:
+  empId 103 – Rahul   | salary: 75000 | experience: 8 | dept: IT
+  empId 105 – Karthik | salary: 68000 | experience: 7 | dept: IT
+
+EXPECTED OUTPUT:
+  { name: "Rahul",   salary: 75000, experience: 8, department: "IT" }
+  { name: "Karthik", salary: 68000, experience: 7, department: "IT" }
+
+================================================================
+QUESTION 13: Find employees whose skills array size is
+             greater than 2.
+================================================================
+
+QUERY:
+------
+db.employees.find(
+  { $expr: { $gt: [ { $size: "$skills" }, 2 ] } },
+  { name: 1, skills: 1, _id: 0 }
+)
+
+EXPLANATION:
+  • $size: "$skills" → returns the count of elements in skills array
+  • $gt: [ ..., 2 ]  → keeps documents where skill count > 2
+                       (3 or more skills)
+  • $expr            → allows use of aggregation expressions
+                       inside a find() filter
+
+SKILLS COUNT PER EMPLOYEE:
+  empId 101 – Arun    : ["Java","MongoDB","Spring"]     → 3 ✔
+  empId 102 – Priya   : ["Recruitment","Training"]      → 2 ✗
+  empId 103 – Rahul   : ["Python","MongoDB","AWS"]      → 3 ✔
+  empId 104 – Sneha   : ["Excel","Taxation"]            → 2 ✗
+  empId 105 – Karthik : ["NodeJS","MongoDB","React"]    → 3 ✔
+  empId 106 – Meena   : ["SEO","Content"]               → 2 ✗
+
+EXPECTED OUTPUT:
+  { name: "Arun",    skills: ["Java", "MongoDB", "Spring"] }
+  { name: "Rahul",   skills: ["Python", "MongoDB", "AWS"] }
+  { name: "Karthik", skills: ["NodeJS", "MongoDB", "React"] }
+
+================================================================
+QUESTION 14: Find departments whose average salary
+             is greater than 50000.
+================================================================
+
+QUERY:
+------
+db.employees.aggregate([
+  {
+    $group: {
+      _id:       "$department",
+      avgSalary: { $avg: "$salary" }
+    }
+  },
+  {
+    $match: {
+      avgSalary: { $gt: 50000 }
+    }
+  },
+  {
+    $project: {
+      _id:        0,
+      department: "$_id",
+      avgSalary:  { $round: ["$avgSalary", 2] }
+    }
+  },
+  {
+    $sort: { avgSalary: -1 }
+  }
+])
+
+EXPLANATION (pipeline stages):
+  Stage 1 – $group   : group employees by department, calculate
+                       average salary per group using $avg
+  Stage 2 – $match   : filter groups where avgSalary > 50000
+  Stage 3 – $project : rename _id to department; round avgSalary
+                       to 2 decimal places
+  Stage 4 – $sort    : order results by avgSalary descending
+
+AVERAGE SALARY BY DEPARTMENT:
+  IT        → (45000 + 75000 + 68000) / 3 = 62666.67  ✔ > 50000
+  HR        → 55000 / 1                  = 55000.00  ✔ > 50000
+  Finance   → 50000 / 1                  = 50000.00  ✗ NOT > 50000
+  Marketing → 42000 / 1                  = 42000.00  ✗ NOT > 50000
+
+EXPECTED OUTPUT:
+  { department: "IT", avgSalary: 62666.67 }
+  { department: "HR", avgSalary: 55000.00 }
+
+================================================================
+QUESTION 15: Find minimum salary in each department.
+================================================================
+
+QUERY:
+------
+db.employees.aggregate([
+  {
+    $group: {
+      _id:    "$department",
+      minSalary: { $min: "$salary" }
+    }
+  },
+  {
+    $project: {
+      _id:        0,
+      department: "$_id",
+      minSalary:  1
+    }
+  },
+  {
+    $sort: { minSalary: 1 }
+  }
+])
+
+EXPLANATION (pipeline stages):
+  Stage 1 – $group   : group employees by department, find the
+                       minimum salary in each group using $min
+  Stage 2 – $project : rename _id to department for clarity
+  Stage 3 – $sort    : order results by minSalary ascending
+
+MIN SALARY BY DEPARTMENT (calculated from dataset):
+  IT        → min(45000, 75000, 68000) = 45000  (Arun)
+  HR        → min(55000)               = 55000  (Priya)
+  Finance   → min(50000)               = 50000  (Sneha)
+  Marketing → min(42000)               = 42000  (Meena)
+
+EXPECTED OUTPUT:
+  { department: "Marketing", minSalary: 42000 }
+  { department: "IT",        minSalary: 45000 }
+  { department: "Finance",   minSalary: 50000 }
+  { department: "HR",        minSalary: 55000 }
+
+================================================================
+QUESTION 16: Rename field 'city' to 'location' in employees.
+================================================================
+
+QUERY:
+------
+db.employees.updateMany(
+  {},
+  { $rename: { "city": "location" } }
+)
+
+EXPLANATION:
+  • updateMany({}, ...)    → empty filter {} matches ALL documents
+  • $rename: { "city": "location" } → renames the field 'city'
+    to 'location' across every employee document
+  • If a document does not have the 'city' field, $rename
+    simply ignores it (no error thrown)
+
+BEFORE (example):
+  { empId: 101, name: "Arun", city: "Chennai", ... }
+
+AFTER (example):
+  { empId: 101, name: "Arun", location: "Chennai", ... }
+
+EXPECTED OUTPUT:
+  { acknowledged: true, matchedCount: 6, modifiedCount: 6 }
+
+VERIFY WITH:
+  db.employees.find({}, { name: 1, location: 1, _id: 0 })
+  ➜ All employees will now show 'location' instead of 'city'
+
+================================================================
+                SUMMARY OF ALL QUERIES
+================================================================
+
+ Q8  | db.students.updateMany({ dept:"CS" }, { $unset: { scholarship:"" } })
+ Q9  | db.students.updateMany({ dept:"CS" }, { $set: { scholarship: false } })
+ Q11 | db.students.find().sort({marks:-1}).skip(2).limit(2)
+ Q12 | db.employees.find({ salary:{$gt:50000}, experience:{$gt:5} })
+ Q13 | db.employees.find({ $expr:{ $gt:[{ $size:"$skills" }, 2] } })
+ Q14 | db.employees.aggregate([ $group(avgSalary), $match(avgSalary>50000) ])
+ Q15 | db.employees.aggregate([ $group(minSalary by dept) ])
+ Q16 | db.employees.updateMany({}, { $rename: { city:"location" } })
+
+================================================================
+                      END OF SOLUTIONS
+================================================================
