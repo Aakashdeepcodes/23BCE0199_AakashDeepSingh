@@ -1,0 +1,283 @@
+========================================================
+  MONGODB STUDENTS COLLECTION - QUERIES & SOLUTIONS
+                  QUESTIONS 1 TO 7
+========================================================
+
+----------------------------------------------------------
+  SAMPLE DATA USED (db.students.insertMany)
+----------------------------------------------------------
+
+db.students.insertMany([
+  { _id: 1, name: "Ananya",  age: 21, dept: "CS",  marks: 88, grades: ["A","B","A"], address: { city: "Chennai",    pin: "600001" }, active: true  },
+  { _id: 2, name: "Arjun",   age: 23, dept: "IT",  marks: 74, grades: ["B","C","B"], address: { city: "Madurai",    pin: "625001" }, active: true  },
+  { _id: 3, name: "Meena",   age: 20, dept: "CS",  marks: 95, grades: ["A","A","A"], address: { city: "Chennai",    pin: "600002" }, active: true  },
+  { _id: 4, name: "Ravi",    age: 22, dept: "ECE", marks: 61, grades: ["C","C","B"], address: { city: "Trichy",     pin: "620001" }, active: false },
+  { _id: 5, name: "Kavya",   age: 24, dept: "IT",  marks: 82, grades: ["A","B","B"], address: { city: "Coimbatore", pin: "641001" }, active: true  },
+  { _id: 6, name: "Dinesh",  age: 19, dept: "CS",  marks: 55, grades: ["C","D","C"], address: { city: "Salem",      pin: "636001" }, active: true  },
+  { _id: 7, name: "Priya",   age: 22, dept: "ECE", marks: 79, grades: ["B","B","A"], address: { city: "Vellore",    pin: "632001" }, active: true  }
+]);
+
+
+========================================================
+  QUESTION 1: Find all students from CS department
+              with marks greater than 80
+========================================================
+
+QUERY:
+------
+db.students.find(
+  { dept: "CS", marks: { $gt: 80 } }
+)
+
+EXPLANATION:
+  - dept: "CS"          --> Filter by CS department
+  - marks: { $gt: 80 }  --> marks strictly greater than 80
+  - Both conditions combined act as AND
+
+EXPECTED OUTPUT:
+  { _id: 1, name: "Ananya", age: 21, dept: "CS", marks: 88, ... }
+  { _id: 3, name: "Meena",  age: 20, dept: "CS", marks: 95, ... }
+
+RESULT COUNT: 2 documents
+
+NOTE:
+  - Dinesh (CS, marks: 55) excluded because 55 is NOT > 80
+
+
+========================================================
+  QUESTION 2: Find students whose marks are between
+              60 and 85 (inclusive) using $gte and $lte
+========================================================
+
+QUERY:
+------
+db.students.find(
+  { marks: { $gte: 60, $lte: 85 } }
+)
+
+EXPLANATION:
+  - $gte: 60  --> marks greater than or equal to 60
+  - $lte: 85  --> marks less than or equal to 85
+  - Both conditions on same field act as AND
+
+EXPECTED OUTPUT:
+  { _id: 2, name: "Arjun",  age: 23, dept: "IT",  marks: 74, ... }
+  { _id: 4, name: "Ravi",   age: 22, dept: "ECE", marks: 61, ... }
+  { _id: 5, name: "Kavya",  age: 24, dept: "IT",  marks: 82, ... }
+  { _id: 7, name: "Priya",  age: 22, dept: "ECE", marks: 79, ... }
+
+RESULT COUNT: 4 documents
+
+NOTE:
+  - Ananya (88) and Meena (95) excluded: both exceed 85
+  - Dinesh (55) excluded: below 60
+
+
+========================================================
+  QUESTION 3: Find all students who are either from
+              IT or ECE department using $in operator
+========================================================
+
+QUERY:
+------
+db.students.find(
+  { dept: { $in: ["IT", "ECE"] } }
+)
+
+EXPLANATION:
+  - $in: ["IT", "ECE"]  --> Matches documents where dept equals
+                            "IT" OR "ECE"
+  - Equivalent to: dept == "IT" OR dept == "ECE"
+
+EXPECTED OUTPUT:
+  { _id: 2, name: "Arjun", age: 23, dept: "IT",  marks: 74, ... }
+  { _id: 4, name: "Ravi",  age: 22, dept: "ECE", marks: 61, ... }
+  { _id: 5, name: "Kavya", age: 24, dept: "IT",  marks: 82, ... }
+  { _id: 7, name: "Priya", age: 22, dept: "ECE", marks: 79, ... }
+
+RESULT COUNT: 4 documents
+
+
+========================================================
+  QUESTION 4: Find students NOT in the CS department
+              using $nin — project only name and dept
+========================================================
+
+QUERY:
+------
+db.students.find(
+  { dept: { $nin: ["CS"] } },
+  { name: 1, dept: 1, _id: 0 }
+)
+
+EXPLANATION:
+  - $nin: ["CS"]               --> Excludes documents where dept is "CS"
+  - { name: 1, dept: 1, _id: 0 }  --> Projection:
+      name: 1   --> include name field
+      dept: 1   --> include dept field
+      _id: 0    --> exclude _id (included by default, so must be set to 0)
+
+EXPECTED OUTPUT:
+  { name: "Arjun", dept: "IT"  }
+  { name: "Ravi",  dept: "ECE" }
+  { name: "Kavya", dept: "IT"  }
+  { name: "Priya", dept: "ECE" }
+
+RESULT COUNT: 4 documents
+
+
+========================================================
+  QUESTION 5: Find students where address.city is
+              'Chennai' using dot notation
+========================================================
+
+QUERY:
+------
+db.students.find(
+  { "address.city": "Chennai" }
+)
+
+EXPLANATION:
+  - Dot notation ("address.city") queries into embedded/nested documents
+  - "address.city" drills into the address sub-document to access city
+  - The path must be enclosed in quotes when used as a query key
+
+EXPECTED OUTPUT:
+  { _id: 1, name: "Ananya", dept: "CS", marks: 88,
+    address: { city: "Chennai", pin: "600001" }, ... }
+  { _id: 3, name: "Meena",  dept: "CS", marks: 95,
+    address: { city: "Chennai", pin: "600002" }, ... }
+
+RESULT COUNT: 2 documents
+
+NOTE:
+  - Without dot notation, { address: { city: "Chennai" } } requires
+    an EXACT full sub-document match (would fail if pin is also present)
+
+
+========================================================
+  QUESTION 6: Find total revenue per category using
+              $group and $sum on computed field (price x sold)
+========================================================
+
+SAMPLE PRODUCTS DATA:
+---------------------
+db.products.insertMany([
+  { name: "Pen",    category: "Stationery",  price: 10,  sold: 100 },
+  { name: "Book",   category: "Stationery",  price: 50,  sold: 200 },
+  { name: "Phone",  category: "Electronics", price: 500, sold: 50  },
+  { name: "Tablet", category: "Electronics", price: 800, sold: 30  },
+  { name: "Chair",  category: "Furniture",   price: 300, sold: 20  }
+]);
+
+QUERY:
+------
+db.products.aggregate([
+  {
+    $group: {
+      _id: "$category",
+      totalRevenue: { $sum: { $multiply: ["$price", "$sold"] } }
+    }
+  }
+])
+
+EXPLANATION:
+  - aggregate([]) --> starts an aggregation pipeline
+  - $group         --> groups documents by the _id expression
+  - _id: "$category" --> groups by the category field
+  - $sum           --> accumulates values across each group
+  - $multiply: ["$price", "$sold"] --> computes price x sold per document
+                                       before summing across the group
+
+CALCULATION:
+  Stationery:  (10 x 100) + (50 x 200) = 1000 + 10000 = 11000
+  Electronics: (500 x 50) + (800 x 30) = 25000 + 24000 = 49000
+  Furniture:   (300 x 20)              = 6000
+
+EXPECTED OUTPUT:
+  { _id: "Stationery",  totalRevenue: 11000 }
+  { _id: "Electronics", totalRevenue: 49000 }
+  { _id: "Furniture",   totalRevenue: 6000  }
+
+RESULT COUNT: 3 documents (one per category)
+
+
+========================================================
+  QUESTION 7: Use aggregation to find total number of
+              students and average marks per department
+========================================================
+
+QUERY:
+------
+db.students.aggregate([
+  {
+    $group: {
+      _id: "$dept",
+      totalStudents: { $sum: 1 },
+      averageMarks:  { $avg: "$marks" }
+    }
+  }
+])
+
+EXPLANATION:
+  - $group           --> groups documents by dept
+  - _id: "$dept"     --> one group per unique department value
+  - $sum: 1          --> adds 1 for each document in the group
+                         (counts total students per dept)
+  - $avg: "$marks"   --> calculates arithmetic mean of marks in the group
+
+CALCULATION:
+  CS  : students = Ananya(88), Meena(95), Dinesh(55)
+        total = 3,  average = (88+95+55)/3 = 79.33
+  IT  : students = Arjun(74), Kavya(82)
+        total = 2,  average = (74+82)/2    = 78.0
+  ECE : students = Ravi(61), Priya(79)
+        total = 2,  average = (61+79)/2    = 70.0
+
+EXPECTED OUTPUT:
+  { _id: "CS",  totalStudents: 3, averageMarks: 79.33 }
+  { _id: "IT",  totalStudents: 2, averageMarks: 78.0  }
+  { _id: "ECE", totalStudents: 2, averageMarks: 70.0  }
+
+RESULT COUNT: 3 documents (one per department)
+
+
+========================================================
+  QUICK REFERENCE: ALL OPERATORS USED
+========================================================
+
+  COMPARISON OPERATORS:
+  ---------------------
+  $gt    --> Greater Than             ( >  )
+  $gte   --> Greater Than or Equal    ( >= )
+  $lt    --> Less Than                ( <  )
+  $lte   --> Less Than or Equal       ( <= )
+  $in    --> Matches any value in array
+  $nin   --> Matches NO value in array
+
+  AGGREGATION OPERATORS:
+  ----------------------
+  $group    --> Groups documents by a key field
+  $sum      --> Sums values; $sum: 1 counts documents
+  $avg      --> Calculates average of a field
+  $multiply --> Multiplies two or more field values
+
+  QUERY SYNTAX:
+  -------------
+  db.collection.find(query, projection)
+    query      : filter condition  e.g. { dept: "CS" }
+    projection : fields to return  e.g. { name: 1, _id: 0 }
+    1 = include field | 0 = exclude field
+
+  DOT NOTATION:
+  -------------
+  { "parent.child": value }   --> query nested/embedded document fields
+
+  AGGREGATION SYNTAX:
+  -------------------
+  db.collection.aggregate([ stage1, stage2, ... ])
+    Each stage transforms the documents in the pipeline.
+
+========================================================
+  END OF ALL SOLUTIONS (Q1 - Q7)
+========================================================
