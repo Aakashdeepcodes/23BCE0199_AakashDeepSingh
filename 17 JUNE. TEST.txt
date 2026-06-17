@@ -1,0 +1,295 @@
+
+--------------------------------------------------------------------------------
+Q1. Insert one employee document.
+--------------------------------------------------------------------------------
+db.employees.insertOne({
+  empId: 106,
+  name: "Vignesh",
+  age: 27,
+  department: "IT",
+  salary: 60000,
+  city: "Chennai",
+  experience: 4,
+  skills: ["MongoDB", "Node.js"],
+  active: true
+})
+
+db.employees.insertOne(<document>) inserts exactly one document into the
+collection. MongoDB auto-generates an _id (ObjectId) if you do not supply
+one yourself. Returns an acknowledgement object containing the new _id.
+
+
+--------------------------------------------------------------------------------
+Q2. Insert multiple employee documents.
+--------------------------------------------------------------------------------
+db.employees.insertMany([
+  {
+    empId: 107,
+    name: "Meena",
+    age: 24,
+    department: "HR",
+    salary: 42000,
+    city: "Bangalore",
+    experience: 2,
+    skills: ["Recruitment"],
+    active: true
+  },
+  {
+    empId: 108,
+    name: "Suresh",
+    age: 35,
+    department: "IT",
+    salary: 80000,
+    city: "Mumbai",
+    experience: 10,
+    skills: ["Java", "AWS"],
+    active: true
+  }
+])
+
+db.employees.insertMany([...]) takes an array of documents and inserts
+them all in a single batched call to the server. This is far more
+efficient than calling insertOne() in a loop, since it avoids one
+network round-trip per document.
+
+
+--------------------------------------------------------------------------------
+Q3. Find one employee from IT department.
+--------------------------------------------------------------------------------
+db.employees.findOne({ department: "IT" })
+
+findOne() returns only the FIRST matching document (or null if nothing
+matches), not an array/cursor. Useful when you only need a single
+sample record rather than the full result set.
+
+
+--------------------------------------------------------------------------------
+Q4. Display all employees.
+--------------------------------------------------------------------------------
+db.employees.find({})
+
+An empty filter object {} places no restriction on the query, so every
+document in the collection is returned. find() always returns a cursor;
+mongosh automatically prints the first batch of results.
+
+
+--------------------------------------------------------------------------------
+Q5. Display only name and salary.
+--------------------------------------------------------------------------------
+db.employees.find({}, { name: 1, salary: 1, _id: 0 })
+
+The second argument to find() is the PROJECTION. Setting a field to 1
+includes it in the output; setting it to 0 excludes it. The _id field
+is included by default in every query, so it must be explicitly set to
+0 if you don't want it in the result.
+
+
+--------------------------------------------------------------------------------
+Q6. Find employees with salary equal to 50000.
+--------------------------------------------------------------------------------
+db.employees.find({ salary: 50000 })
+
+Equality filters don't need an operator — passing the value directly is
+shorthand for { salary: { $eq: 50000 } }.
+
+
+--------------------------------------------------------------------------------
+Q7. Find employees with salary less than 60000.
+--------------------------------------------------------------------------------
+db.employees.find({ salary: { $lt: 60000 } })
+
+$lt = "less than". The boundary value (60000) itself is excluded from
+the results.
+
+
+--------------------------------------------------------------------------------
+Q8. Find employees with salary greater than or equal to 60000.
+--------------------------------------------------------------------------------
+db.employees.find({ salary: { $gte: 60000 } })
+
+$gte = "greater than or equal to". The boundary value (60000) IS
+included this time, unlike $gt which would exclude it.
+
+
+--------------------------------------------------------------------------------
+Q9. Find employees whose age is not equal to 30.
+--------------------------------------------------------------------------------
+db.employees.find({ age: { $ne: 30 } })
+
+$ne = "not equal". Returns every document where age is anything other
+than 30 — this also matches documents where the age field is missing
+entirely, so be mindful of that on more flexible schemas.
+
+
+--------------------------------------------------------------------------------
+Q10. Find employees from Chennai or Mumbai.
+--------------------------------------------------------------------------------
+db.employees.find({ city: { $in: ["Chennai", "Mumbai"] } })
+
+$in checks if the field's value matches ANY value inside the given
+array. This is the cleanest way to express an OR condition when all
+conditions are on the SAME field.
+
+-- equivalent using $or (more verbose, same result) --
+db.employees.find({ $or: [ { city: "Chennai" }, { city: "Mumbai" } ] })
+
+
+--------------------------------------------------------------------------------
+Q11. Find employees not from Chennai.
+--------------------------------------------------------------------------------
+db.employees.find({ city: { $ne: "Chennai" } })
+
+Same $ne operator as Q9, just applied to a string field instead of a
+numeric one. Works identically regardless of data type.
+
+
+--------------------------------------------------------------------------------
+Q12. Find IT employees with salary > 50000.
+--------------------------------------------------------------------------------
+db.employees.find({ department: "IT", salary: { $gt: 50000 } })
+
+Listing multiple fields inside a single query object is an IMPLICIT
+AND — both conditions must be true for a document to match. No
+explicit $and is required unless you're combining conditions on the
+SAME field or nesting logical operators.
+
+-- equivalent using explicit $and --
+db.employees.find({ $and: [ { department: "IT" }, { salary: { $gt: 50000 } } ] })
+
+
+--------------------------------------------------------------------------------
+Q13. Find employees from Chennai OR Bangalore.
+--------------------------------------------------------------------------------
+db.employees.find({ city: { $in: ["Chennai", "Bangalore"] } })
+
+Same pattern as Q10 — $in is the idiomatic way to match a field against
+multiple acceptable values.
+
+
+--------------------------------------------------------------------------------
+Q14. Find employees NOT earning above 60000.
+--------------------------------------------------------------------------------
+db.employees.find({ salary: { $lte: 60000 } })
+
+
+--------------------------------------------------------------------------------
+Q15. Find employees neither in IT nor HR.
+--------------------------------------------------------------------------------
+db.employees.find({ department: { $nin: ["IT", "HR"] } })
+
+$nin = "not in". It's the direct inverse of $in — matches documents
+where the field's value is NONE of the values in the given array.
+
+
+--------------------------------------------------------------------------------
+Q16. Find documents containing experience field.
+--------------------------------------------------------------------------------
+db.employees.find({ experience: { $exists: true } })
+
+$exists: true matches documents where the field is PRESENT, regardless
+of its value (even null counts as present). Pass $exists: false to find
+documents where the field is missing entirely — handy for collections
+with a flexible or evolving schema.
+
+
+--------------------------------------------------------------------------------
+Q17. Find documents where salary is Integer.
+--------------------------------------------------------------------------------
+db.employees.find({ salary: { $type: "int" } })
+
+$type filters by BSON data type. MongoDB stores numbers as one of
+several BSON subtypes — "int" (32-bit integer), "long" (64-bit integer),
+or "double" (floating point) — depending on how the value was inserted
+and which driver/language was used.
+
+
+
+--------------------------------------------------------------------------------
+Q18. Find employees having MongoDB skill.
+--------------------------------------------------------------------------------
+db.employees.find({ skills: "MongoDB" })
+
+When "skills" is an array field, comparing it directly against a single
+value checks whether that value exists ANYWHERE inside the array — no
+special array operator is needed for this simple case.
+
+
+--------------------------------------------------------------------------------
+Q19. Find employees having both MongoDB and AWS.
+--------------------------------------------------------------------------------
+db.employees.find({ skills: { $all: ["MongoDB", "AWS"] } })
+
+$all matches documents where the array field contains EVERY value
+listed, regardless of order and regardless of what other values are
+also present in the array. This is different from $in, which only
+requires ONE matching value.
+
+
+--------------------------------------------------------------------------------
+Q20. Find employees with exactly 3 skills.
+--------------------------------------------------------------------------------
+db.employees.find({ skills: { $size: 3 } })
+
+$size matches arrays of an EXACT length. It cannot be combined with
+range operators like $gt or $lt directly (e.g. there's no native
+"$size: {$gte: 3}"). For range-based array length checks, you would
+instead use $expr with $size:
+db.employees.find({ $expr: { $gte: [ { $size: "$skills" }, 3 ] } })
+
+
+--------------------------------------------------------------------------------
+Q21. Find employees having Java skill using elemMatch.
+--------------------------------------------------------------------------------
+db.employees.find({ skills: { $elemMatch: { $eq: "Java" } } })
+
+$elemMatch requires at least one array element to satisfy ALL the
+specified conditions. For a simple array of strings with a single
+condition (like this one), a plain match — db.employees.find({ skills: "Java" })
+— would give the identical result. $elemMatch becomes essential when
+the array holds OBJECTS and you need multiple conditions to be true on
+THE SAME element (e.g. matching one specific {skill: "Java", level: "expert"}
+object inside an array of skill objects, rather than mixing conditions
+across different elements).
+
+
+--------------------------------------------------------------------------------
+Q22. Display employees sorted by salary descending.
+--------------------------------------------------------------------------------
+db.employees.find().sort({ salary: -1 })
+
+.sort() takes a field and a direction: 1 = ascending (smallest first),
+-1 = descending (largest first). A simple way to remember it: "-1
+brings the biggest number to the top."
+
+
+--------------------------------------------------------------------------------
+Q23. Display top 3 highest paid employees.
+--------------------------------------------------------------------------------
+db.employees.find().sort({ salary: -1 }).limit(3)
+
+Chain .limit(n) after .sort() to cap the number of returned documents
+to n. Conceptually MongoDB sorts the full result set first and then
+takes the first 3 — though the query planner may optimize this
+internally, the logical result is the same: top 3 by salary.
+
+
+--------------------------------------------------------------------------------
+Q24. Increase salary of employee 101 by 5000.
+--------------------------------------------------------------------------------
+db.employees.updateOne({ empId: 101 }, { $inc: { salary: 5000 } })
+
+$inc atomically increments (or decrements, with a negative value) a
+numeric field by the given amount. It's the correct tool here instead
+of reading the salary in application code, adding 5000, and writing it
+back — that two-step approach is vulnerable to race conditions under
+concurrent updates, whereas $inc is handled atomically by the database
+itself.
+
+
+--------------------------------------------------------------------------------
+Q25. Increase salary of all IT employees by 10%.
+--------------------------------------------------------------------------------
+db.employees.updateMany({ department: "IT" }, { $mul: { salary: 1.10 } })
+
+updateMany() applies the update to EVERY document matching the filter,
+
